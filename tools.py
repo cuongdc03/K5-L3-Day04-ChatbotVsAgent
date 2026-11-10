@@ -10,6 +10,7 @@ File này có sẵn 2 tool mẫu (get_current_date, get_weather). Bạn viết t
 from __future__ import annotations
 
 import json
+import re
 from datetime import date as Date, timedelta
 
 CITIES = {"Hà Nội": 0, "TP.HCM": 1, "Đà Nẵng": 2, "Phú Quốc": 3}
@@ -21,14 +22,26 @@ def get_current_date() -> dict:
     return {"today": today.isoformat(), "tomorrow": (today + timedelta(days=1)).isoformat()}
 
 
+# ---------------------------------------------------------------- date parsing
+def parse_date(value: str) -> Date:
+    """Parse 'YYYY-MM-DD' và báo lỗi cụ thể (luôn chứa 'không hợp lệ') để agent biết sửa gì."""
+    m = re.fullmatch(r"\s*(\d{4})-(\d{1,2})-(\d{1,2})\s*", str(value))
+    if not m:
+        raise ValueError(f"Ngày '{value}' không hợp lệ: sai định dạng, cần YYYY-MM-DD (vd. 2026-06-02).")
+    y, mo, d = map(int, m.groups())
+    if not 1 <= mo <= 12:
+        raise ValueError(f"Ngày '{value}' không hợp lệ: không có tháng {mo} (tháng phải từ 1 đến 12).")
+    try:
+        return Date(y, mo, d)
+    except ValueError:
+        raise ValueError(f"Ngày '{value}' không hợp lệ: tháng {mo} năm {y} không có ngày {d}.")
+
+
 # ---------------------------------------------------------------- tool mẫu 2
 def get_weather(city: str, date: str) -> dict:
     if city not in CITIES:
         raise ValueError(f"Không hỗ trợ thành phố '{city}'. Chỉ có: {', '.join(CITIES)}.")
-    try:
-        d = Date.fromisoformat(date)
-    except ValueError:
-        raise ValueError(f"date phải có dạng YYYY-MM-DD, nhận '{date}'.")
+    d = parse_date(date)
     # Dữ liệu giả lập: cùng thành phố + cùng ngày luôn ra cùng kết quả
     seed = d.toordinal() * 7 + CITIES[city] * 13
     return {
@@ -49,7 +62,15 @@ def recommend_outfit(temp_high_c: float, rain_probability: float) -> dict:
     #     ngược lại                -> gợi ý "trang phục thoải mái, mang áo khoác nhẹ"
     #   - rain_probability > 0.5   -> thêm "ô gập hoặc áo mưa"
     #   - Trả về dict: {"items": [ ...các gợi ý... ]}
-    raise NotImplementedError("TODO 1")
+    if not 0 <= rain_probability <= 1:
+        raise ValueError(
+            f"rain_probability phải từ 0 đến 1, nhận {rain_probability:g}. "
+            f"Nếu là phần trăm thì chia cho 100 (vd. 70% thì truyền 0.7)."
+        )
+    items = ["áo thun mỏng, vải cotton"] if temp_high_c > 30 else ["trang phục thoải mái, mang áo khoác nhẹ"]
+    if rain_probability > 0.5:
+        items.append("ô gập hoặc áo mưa")
+    return {"items": items}
 
 
 # ---------------------------------------------------------------- schema
@@ -80,6 +101,20 @@ TOOLS = [
     #   - "input_schema": 2 tham số temp_high_c và rain_probability, đều là "number",
     #     mỗi tham số có description ghi rõ đơn vị (°C; 0.0-1.0, KHÔNG phải %), và có "required".
     # Thiếu schema này thì model không biết tool tồn tại, dù hàm đã viết xong.
+    {
+        "name": "recommend_outfit",
+        "description": "Recommend what to wear. Call this AFTER get_weather, using its values. "
+                       "Returns JSON: {\"items\": [list of clothing suggestions]}.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "temp_high_c": {"type": "number", "description": "Daily high temperature in °C (e.g. 32)."},
+                "rain_probability": {"type": "number",
+                                     "description": "Chance of rain as a fraction from 0.0 to 1.0, NOT a percent (70% = 0.7)."},
+            },
+            "required": ["temp_high_c", "rain_probability"],
+        },
+    },
 ]
 
 FUNCTIONS = {

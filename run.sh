@@ -17,7 +17,7 @@ setup() {
   .venv/bin/pip install -q -r requirements.txt
   if [ ! -f .env ]; then
     cp .env.example .env
-    echo "→ Đã tạo file .env. Mở file này và điền ANTHROPIC_API_KEY."
+    echo "→ Đã tạo file .env. Mở file này và điền OPENAI_API_KEY."
   fi
   echo "✓ Xong. Tiếp theo: ./run.sh check"
 }

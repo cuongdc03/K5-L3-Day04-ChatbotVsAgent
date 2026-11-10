@@ -37,7 +37,7 @@ flowchart LR
         P -.->|"gửi kèm mỗi lần gọi"| L
     end
 
-    L <-->|"messages + schema TOOLS<br/>trả về: text hoặc tool_use"| M[("Claude API")]
+    L <-->|"messages + schema TOOLS<br/>trả về: text hoặc tool_use"| M[("OpenAI API")]
     L -->|"run_tool(name, args)"| R
 
     subgraph TL["tools.py"]
@@ -80,7 +80,7 @@ cd K5-L3-Day04-ChatbotVsAgent
 ./run.sh setup
 ```
 
-`setup` tạo môi trường `.venv`, cài thư viện và tạo file `.env`. Mở `.env` và điền `ANTHROPIC_API_KEY` của bạn.
+`setup` tạo môi trường `.venv`, cài thư viện và tạo file `.env`. Mở `.env` và điền `OPENAI_API_KEY` của bạn.
 
 Các lệnh dùng trong bài:
 
@@ -98,7 +98,7 @@ Các lệnh dùng trong bài:
 python -m venv .venv
 .venv\Scripts\activate          # Mac / Linux: source .venv/bin/activate
 pip install -r requirements.txt
-copy .env.example .env           # Mac / Linux: cp .env.example .env, rồi điền ANTHROPIC_API_KEY
+copy .env.example .env           # Mac / Linux: cp .env.example .env, rồi điền OPENAI_API_KEY
 
 python check.py                  # = ./run.sh check
 python agent.py "Ngày mai ở Đà Nẵng nên mặc gì?"   # = ./run.sh ask "..."
